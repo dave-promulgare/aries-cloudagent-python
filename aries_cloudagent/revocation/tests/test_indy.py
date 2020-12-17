@@ -1,20 +1,13 @@
-import json
-
 import pytest
 
 from asynctest import TestCase as AsyncTestCase
 from asynctest import mock as async_mock
 
-from indy.error import IndyError, ErrorCode
-
 from ...core.in_memory import InMemoryProfile
 from ...ledger.base import BaseLedger
 from ...storage.error import StorageNotFoundError
-from ...wallet.base import BaseWallet
-from ...wallet.indy import IndySdkWallet
 
 from ..error import (
-    RevocationError,
     RevocationNotSupportedError,
     RevocationRegistryBadSizeError,
 )
@@ -104,33 +97,6 @@ class TestIndyRevocation(AsyncTestCase):
         CRED_DEF_ID = f"{self.test_did}:3:CL:1234:default"
         with self.assertRaises(StorageNotFoundError) as x_init:
             await self.revoc.get_active_issuer_rev_reg_record(CRED_DEF_ID)
-
-    async def test_init_issuer_registry_no_revocation(self):
-        CRED_DEF_ID = f"{self.test_did}:3:CL:1234:default"
-
-        self.ledger.get_credential_definition = async_mock.CoroutineMock(
-            return_value={"value": {}}
-        )
-
-        with self.assertRaises(RevocationNotSupportedError) as x_revo:
-            await self.revoc.init_issuer_registry(CRED_DEF_ID)
-            assert x_revo.message == "Credential definition does not support revocation"
-
-    async def test_get_active_issuer_rev_reg_record(self):
-        CRED_DEF_ID = f"{self.test_did}:3:CL:1234:default"
-        rec = await self.revoc.init_issuer_registry(CRED_DEF_ID)
-        rec.revoc_reg_id = "dummy"
-        rec.state = IssuerRevRegRecord.STATE_ACTIVE
-        async with self.profile.session() as session:
-            await rec.save(session)
-
-        result = await self.revoc.get_active_issuer_rev_reg_record(CRED_DEF_ID)
-        assert rec == result
-
-    async def test_get_active_issuer_rev_reg_record_none(self):
-        CRED_DEF_ID = f"{self.test_did}:3:CL:1234:default"
-        with self.assertRaises(StorageNotFoundError):
-            result = await self.revoc.get_active_issuer_rev_reg_record(CRED_DEF_ID)
 
     async def test_get_issuer_rev_reg_record(self):
         CRED_DEF_ID = f"{self.test_did}:3:CL:1234:default"
